@@ -81,7 +81,7 @@ def main() -> None:
             observer.start()
             stop_plex_watchdog_service: () = plex_agent_singleton.start_service()
             while True:
-                time.sleep(1)
+                time.sleep(2)
         except KeyboardInterrupt:
             logging.warning("Detected SIGNTERM, stopping PlexNFSWatchdog...")
             for observer in observers:

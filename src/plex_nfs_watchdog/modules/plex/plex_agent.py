@@ -15,6 +15,58 @@ class PlexAgent:
     __save_cache: bool = False
     __internal_paths: dict[str, tuple[str, str]] = {}
     __notify_queue: set[tuple[str, str]] = set()
+    __supported_ext: list[str] = [
+        "3g2",
+        "3gp",
+        "amv",
+        "asf",
+        "ass",
+        "avi",
+        "drc",
+        "f4a",
+        "f4b",
+        "f4p",
+        "f4v",
+        "flac",
+        "flv",
+        "gif",
+        "gifv",
+        "idx",
+        "m2ts",
+        "m2v",
+        "m4p",
+        "m4v",
+        "m4v",
+        "mkv",
+        "mng",
+        "mov",
+        "mp2",
+        "mp3",
+        "mp4",
+        "mpe",
+        "mpeg",
+        "mpg",
+        "mpv",
+        "mxf",
+        "nsv",
+        "ogg",
+        "ogv",
+        "qt",
+        "rm",
+        "rmvb",
+        "roq",
+        "smi",
+        "srt",
+        "ssa",
+        "sub",
+        "svi",
+        "ts",
+        "vob",
+        "vtt",
+        "wmv",
+        "yuv",
+        "webm"
+    ]
 
     def is_cache_loaded(self) -> bool:
         """
@@ -172,7 +224,10 @@ class PlexAgent:
         event_path = Path(event.src_path)
         if event_path.name in self.__internal_paths.keys():
             return
-        logging.info(f"Analyzing {event_path}")
+        if not event_path.is_dir():
+            extension: str = event_path.suffix.replace(".", "")
+            if extension not in self.__supported_ext:
+                return
         section_child: Path | None = self.__find_section_child_of(event_path)
         if section_child is None:
             logging.error(f"Could not find Plex section for {event_path}")
