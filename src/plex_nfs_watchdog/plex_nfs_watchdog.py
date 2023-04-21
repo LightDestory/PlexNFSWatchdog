@@ -12,11 +12,12 @@ from modules.watchdog.plex_watchdog_event import PlexWatchdog
 from modules.config import shared
 from modules.plex.plex_agent import plex_agent_singleton
 
-colorlog.basicConfig(format='{log_color}{levelname}:\t{message}', level=logging.DEBUG, style='{', stream=None,
+colorlog.basicConfig(format='{log_color}{levelname}:\t{message}', level=logging.INFO, style='{', stream=None,
                      log_colors={
                          'DEBUG': 'cyan', 'INFO': 'white', 'WARNING': 'yellow', 'ERROR': 'red', 'CRITICAL': 'red'
                      })
 logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("watchdog").setLevel(logging.WARNING)
 
 
 def get_args_from_cli() -> None:
@@ -75,9 +76,10 @@ def main() -> None:
         if not observers:
             logging.error("No valid paths given, exiting...")
             exit(-1)
-        observer.start()
-        stop_plex_watchdog_service: () = plex_agent_singleton.start_service()
+        stop_plex_watchdog_service: () = None
         try:
+            observer.start()
+            stop_plex_watchdog_service: () = plex_agent_singleton.start_service()
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
@@ -86,7 +88,10 @@ def main() -> None:
                 observer.unschedule_all()
                 observer.stop()
                 observer.join()
-            stop_plex_watchdog_service()
+            if stop_plex_watchdog_service is not None:
+                stop_plex_watchdog_service()
+        except OSError as os_err:
+            logging.error(f"OS error: {os_err}")
 
 
 if __name__ == '__main__':
