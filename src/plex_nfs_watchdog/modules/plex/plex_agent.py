@@ -195,16 +195,19 @@ class PlexAgent:
             return
         scan_path: Path = Path(f"{section_path}/{item}")
         logging.info(f"Requesting Plex to scan remote path {str(scan_path)}")
-        plex_section.update(str(scan_path))
+        if shared.user_input.dry_run:
+            logging.info(f"Skipping Plex scan due to dry-run")
+        else:
+            plex_section.update(str(scan_path))
 
-    def manual_scan(self, paths: list[Path]) -> None:
+    def manual_scan(self, paths: set[Path]) -> None:
         """
         Manually scans the given paths
         :param paths: A list of paths to scan
         :return:
         """
         scan_sections: set[tuple[str, str]] = set()
-        for given_path in set(paths):
+        for given_path in paths:
             logging.info(f"Analyzing {given_path}")
             section_child: Path | None = self.__find_section_child_of(given_path)
             if section_child is None:
@@ -224,10 +227,6 @@ class PlexAgent:
         event_path = Path(event.src_path)
         if event_path.name in self.__internal_paths.keys():
             return
-        if not event_path.is_dir():
-            extension: str = event_path.suffix.replace(".", "")
-            if extension not in self.__supported_ext:
-                return
         section_child: Path | None = self.__find_section_child_of(event_path)
         if section_child is None:
             logging.error(f"Could not find Plex section for {event_path}")

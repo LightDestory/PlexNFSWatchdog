@@ -103,14 +103,14 @@ or executing the script directly.
 
 This utility requires the following arguments to work:
 
-| Argument                                     | Role                                                                                                                                                              |
-|----------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| __--scan \| -s__                             | Manually triggers a partial-scan on the given paths                                                                                                               |
-| __--daemon \| -d__                           | Starts a watchdog daemon to automatically triggers a partial-scan on the given paths <br> __Requires:__ _--inteval_                                               |
-| __--paths \| -p__ _\[PATHS...\]_             | A list of paths                                                                                                                                                   |
-| __--host \| -H__ _HOST_                      | The host of the Plex server<br>__Default:__ _http://localhost:32400_                                                                                              |
-| __--token \| -t__ _TOKEN_                    | The token of the Plex server              |
-| __--interval \| -i__ _INTERVAL_ \[OPTIONAL\] |  The interval in seconds to wait between partial-scans |
+| Argument                                     | Role                                                                                                                |
+|----------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| __--scan \| -s__                             | Manually triggers a partial-scan on the given paths                                                                 |
+| __--daemon \| -d__                           | Starts a watchdog daemon to automatically triggers a partial-scan on the given paths <br> __Requires:__ _--inteval_ |
+| __--paths \| -p__ _\[PATHS...\]_             | A list of folder paths                                                                                             |
+| __--host \| -H__ _HOST_                      | The host of the Plex server<br>__Default:__ _http://localhost:32400_                                                |
+| __--token \| -t__ _TOKEN_                    | The token of the Plex server                                                                                        |
+| __--interval \| -i__ _INTERVAL_ \[OPTIONAL\] | The interval in seconds to wait between partial-scans                                                               |
 
 - Manual Scan example:
     >`plex-nfs-watchdog --scan --paths /path/to/library_section1/section_chield1 --host http://localhost:32400 --token YOUR_TOKEN`
