@@ -14,7 +14,7 @@ class PlexAgent:
     __server: PlexServer = None
     __save_cache: bool = False
     __internal_paths: dict[str, tuple[str, str]] = {}
-    __notify_queue: set[tuple[str, str]] = set()
+    __notify_queue: list[tuple[str, str]] = list()
     __supported_ext: list[str] = [
         "3g2",
         "3gp",
@@ -189,7 +189,7 @@ class PlexAgent:
         if plex_section.refreshing:
             if shared.user_input.daemon:
                 logging.warning(f"Plex section {section_title} is already refreshing, re-scheduling...")
-                self.__notify_queue.add((section, item))
+                self.__notify_queue.append((section, item))
             else:
                 logging.warning(f"Plex section {section_title} is already refreshing, skipping...")
             return
@@ -235,7 +235,7 @@ class PlexAgent:
         section_scan = (section_child.parent.name, section_child.name)
         if section_scan not in self.__notify_queue:
             logging.info(f"Adding to queue ({event_type}): {section_child.name}")
-            self.__notify_queue.add(section_scan)
+            self.__notify_queue.append(section_scan)
 
     def start_service(self) -> ():
         """
@@ -247,7 +247,7 @@ class PlexAgent:
         def loop():
             while not stopped.wait(shared.user_input.interval):
                 if self.__notify_queue:
-                    section, item = self.__notify_queue.pop()
+                    section, item = self.__notify_queue.pop(0)
                     self._scan(section, item)
 
         Thread(target=loop).start()
