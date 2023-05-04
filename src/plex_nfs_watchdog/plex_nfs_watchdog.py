@@ -46,10 +46,14 @@ def get_args_from_cli() -> None:
                         action="store", type=int, required=False, default=None)
     parser.add_argument("--version", "-v", help="Prints the version of the application", action='version',
                         version=f"%(prog)s {shared.VERSION}")
+    parser.add_argument("--listeners", "-l", action="store", nargs='+', required=False, help="List of events to watch",
+                        type=str, choices=shared.listeners_type, default=None)
     shared.user_input = parser.parse_args()
     shared.user_input.paths = set(shared.user_input.paths)
     if shared.user_input.daemon and (shared.user_input.interval is None or shared.user_input.interval <= 0):
         parser.error("--interval is required when using --daemon. It must be a not zero positive integer")
+    if shared.user_input.daemon and shared.user_input.listeners is None:
+        parser.error("--listeners is required when using --daemon. It must be a valid event type")
     for given_path in shared.user_input.paths:
         if not given_path.exists() or not given_path.is_dir():
             parser.error(f"{given_path.resolve()} does not exist or it is not a folder!")
