@@ -224,7 +224,8 @@ class PlexAgent:
         :param event: The event to parse
         :return:
         """
-        event_path = Path(event.src_path)
+        event_type: str = event.event_type
+        event_path: Path = Path(event.src_path) if event_type != 'moved' else Path(event.dest_path)
         if event_path.name in self.__internal_paths.keys():
             return
         section_child: Path | None = self.__find_section_child_of(event_path)
@@ -233,7 +234,7 @@ class PlexAgent:
             return
         section_scan = (section_child.parent.name, section_child.name)
         if section_scan not in self.__notify_queue:
-            logging.info(f"Adding to queue ({event.event_type}): {section_child.name}")
+            logging.info(f"Adding to queue ({event_type}): {section_child.name}")
             self.__notify_queue.add(section_scan)
 
     def start_service(self) -> ():
