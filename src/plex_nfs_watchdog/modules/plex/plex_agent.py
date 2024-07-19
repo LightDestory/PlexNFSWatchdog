@@ -135,13 +135,13 @@ class PlexAgent:
         try:
             self.__server = PlexServer(self.__plex_config["host"], self.__plex_config["token"])
             logging.info("Connected to Plex server")
-            logging.debug(f"Plex version: {self.__server.version}")
+            logging.info(f"Plex version: {self.__server.version}")
             self.__inspect_library()
             num_detected_sections: int = len(self.__internal_paths)
             if num_detected_sections == 0:
                 logging.error("No Plex sections detected, please check your configuration")
                 exit(-1)
-            logging.debug(f"Found {num_detected_sections} Plex sections:\n{pprint.pformat(self.__internal_paths)}")
+            logging.info(f"Found {num_detected_sections} Plex sections:\n{pprint.pformat(self.__internal_paths)}")
             if self.__save_cache:
                 self.__save_config_cache()
         except Exception as e:
@@ -209,12 +209,15 @@ class PlexAgent:
         scan_sections: set[tuple[str, str]] = set()
         for given_path in paths:
             logging.info(f"Analyzing {given_path}")
-            section_child: Path | None = self.__find_section_child_of(given_path)
-            if section_child is None:
-                logging.error(f"Could not find Plex section for {given_path}")
-                continue
+            if given_path.name in self.__internal_paths.keys():
+                scan_sections.add((given_path.name, ""))
             else:
-                scan_sections.add((section_child.parent.name, section_child.name))
+                section_child: Path | None = self.__find_section_child_of(given_path)
+                if section_child is None:
+                    logging.error(f"Could not find Plex section for {given_path}")
+                    continue
+                else:
+                    scan_sections.add((section_child.parent.name, section_child.name))
         for (section, item) in scan_sections:
             self._scan(section, item)
 
