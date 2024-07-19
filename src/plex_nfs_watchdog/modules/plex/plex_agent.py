@@ -135,13 +135,13 @@ class PlexAgent:
         try:
             self.__server = PlexServer(self.__plex_config["host"], self.__plex_config["token"])
             logging.info("Connected to Plex server")
-            logging.debug(f"Plex version: {self.__server.version}")
+            logging.info(f"Plex version: {self.__server.version}")
             self.__inspect_library()
             num_detected_sections: int = len(self.__internal_paths)
             if num_detected_sections == 0:
                 logging.error("No Plex sections detected, please check your configuration")
                 exit(-1)
-            logging.debug(f"Found {num_detected_sections} Plex sections:\n{pprint.pformat(self.__internal_paths)}")
+            logging.info(f"Found {num_detected_sections} Plex sections:\n{pprint.pformat(self.__internal_paths)}")
             if self.__save_cache:
                 self.__save_config_cache()
         except Exception as e:
@@ -171,7 +171,7 @@ class PlexAgent:
         :param item: The item to find the section of
         :return: The direct child of the Plex section of the given item
         """
-        while item.parent.name not in self.__internal_paths.keys():
+        while item.name not in self.__internal_paths.keys():
             if len(item.parents) == 0:
                 return None
             item = item.parent

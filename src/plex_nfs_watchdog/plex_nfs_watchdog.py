@@ -41,7 +41,7 @@ def get_args_from_cli() -> None:
     parser.add_argument("--token", "-t", action="store", help="The token of the Plex server", type=str, default=None,
                         required=False)
     parser.add_argument("--dry-run", action='store_true',
-                             help="Dry run mode, does not  send any request of partial-scans")
+                        help="Dry run mode, does not  send any request of partial-scans")
     parser.add_argument("--interval", "-i", help="The interval in seconds to wait between partial-scans",
                         action="store", type=int, required=False, default=None)
     parser.add_argument("--version", "-v", help="Prints the version of the application", action='version',
