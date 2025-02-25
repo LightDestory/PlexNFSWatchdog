@@ -1,6 +1,6 @@
 #!/bin/sh
 
-CMD="python plex_nfs_watchdog.py --daemon"
+CMD="python src/plex_nfs_watchdog/plex_nfs_watchdog.py --daemon"
 
 [ -n "$WATCH_PATHS" ] && CMD="$CMD --paths $WATCH_PATHS"
 [ -n "$PLEX_SERVER" ] && CMD="$CMD --host $PLEX_SERVER"

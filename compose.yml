@@ -3,6 +3,7 @@ services:
     image: plexnfswatchdog:latest
     container_name: plexnfswatchdog
     restart: unless-stopped
+    env_file: ./.env
     environment:
       - PLEX_SERVER=${PLEX_SERVER}
       - PLEX_TOKEN=${PLEX_TOKEN}
