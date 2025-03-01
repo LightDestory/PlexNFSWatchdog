@@ -99,6 +99,47 @@ or executing the script directly.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+### Docker Support
+
+You can also run this tool using **Docker Compose**.
+
+- Clone the repository:
+   - Download the project by running:
+     ```sh
+     git clone https://github.com/LightDestory/PlexNFSWatchdog
+     cd PlexNFSWatchdog
+     ```
+
+- Create a `.env` file in the root of the project:
+   - You can use the provided `.env.example` file as a reference and rename/copy it to `.env`.
+   - Define the necessary environment variables such as your Plex server address, token, paths to watch, scan interval, and event listeners. See <a href="#usage">Usage</a> for more details on what to set these variables to.
+
+- Modify `compose.yml` to match your setup:
+   - Ensure the volume paths correctly map to your actual media directories, the same ones you've specified to be watched in the .env file.
+
+- Build and start the container:
+   - Run the following command to start the service in detached mode:
+     ```sh
+     docker compose up -d --build
+     ```
+
+    - Check logs to monitor the process:
+      ```sh
+      docker logs -f plexnfswatchdog
+      ```
+
+    - Restart the container if needed:
+      ```sh
+      docker compose restart plexnfswatchdog
+      ```
+
+    - Stop and remove the container:
+      ```sh
+      docker compose down
+      ```
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ### Usage
 
 This utility requires the following arguments to work:
