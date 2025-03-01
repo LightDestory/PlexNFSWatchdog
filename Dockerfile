@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
 
 COPY ./src /app/
 COPY ./requirements.txt /app/
-COPY ./pyproject.tml /app/
+COPY ./pyproject.toml /app/
 COPY ./launch.sh /app/
 
 RUN chmod +x /app/launch.sh
