@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y \
     nfs-common \
     && rm -rf /var/lib/apt/lists/*
 
-COPY ./src /app/
+COPY ./src /app/src
 COPY ./requirements.txt /app/
 COPY ./pyproject.toml /app/
 COPY ./launch.sh /app/
