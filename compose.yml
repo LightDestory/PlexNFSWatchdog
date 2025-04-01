@@ -1,6 +1,7 @@
 services:
   plexnfswatchdog:
-    image: plexnfswatchdog:latest
+    build: .
+    image: plexnfswatchdog
     container_name: plexnfswatchdog
     restart: unless-stopped
     env_file: ./.env
