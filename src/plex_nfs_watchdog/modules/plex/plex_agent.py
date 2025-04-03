@@ -154,8 +154,9 @@ class PlexAgent:
         :return:
         """
         for section in self.__server.library.sections():
-            remote_path: str = section.locations[0]
-            self.__internal_paths[Path(remote_path).name] = (section.title, remote_path)
+            for location in section.locations:
+                remote_path: str = location
+                self.__internal_paths[Path(remote_path).name] = (section.title, remote_path)
 
     def is_plex_section(self, folder_name: str) -> bool:
         """
@@ -194,7 +195,7 @@ class PlexAgent:
                 logging.warning(f"Plex section {section_title} is already refreshing, skipping...")
             return
         scan_path: Path = Path(f"{section_path}/{item}")
-        logging.info(f"Requesting Plex to scan remote path {str(scan_path)}")
+        logging.info(f"Requesting Plex to scan remote path {str(item)}")
         if shared.user_input.dry_run:
             logging.info(f"Skipping Plex scan due to dry-run")
         else:
@@ -210,7 +211,7 @@ class PlexAgent:
         for given_path in paths:
             logging.info(f"Analyzing {given_path}")
             if given_path.name in self.__internal_paths.keys():
-                scan_sections.add((given_path.name, ""))
+                scan_sections.add((given_path.name, given_path))
             else:
                 section_child: Path | None = self.__find_section_child_of(given_path)
                 if section_child is None:
