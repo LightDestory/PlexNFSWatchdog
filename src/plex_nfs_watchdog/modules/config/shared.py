@@ -10,5 +10,5 @@ system_paths: dict[str, str] = {
 cache_path: Path = Path(f"{str(Path.home())}/{system_paths[sys.platform]}/plex_nfs_watchdog_cache/plex_config.json")
 
 listeners_type: list[str] = ["move", "modify", "create", "delete", "io_close", "io_open"]
-VERSION: str = "0.0.10"
+VERSION: str = "0.0.11"
 user_input: Namespace
