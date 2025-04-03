@@ -71,7 +71,7 @@ def main() -> None:
     else:
         event_handler: PlexWatchdog = PlexWatchdog()
         observer: Observer = Observer()
-        observers: list[Observer] = []
+        valid_paths: int = 0
         for given_path in shared.user_input.paths:
             full_path: str = given_path.resolve()
             if not plex_agent_singleton.is_plex_section(given_path.name):
@@ -79,8 +79,8 @@ def main() -> None:
                 continue
             logging.info(f"Scheduling watcher for {full_path}")
             observer.schedule(event_handler, full_path, recursive=True)
-            observers.append(observer)
-        if not observers:
+            valid_paths += 1
+        if valid_paths == 0:
             logging.error("No valid paths given, exiting...")
             exit(-1)
         stop_plex_watchdog_service: () = None
@@ -93,10 +93,8 @@ def main() -> None:
                 time.sleep(2)
         except KeyboardInterrupt:
             logging.warning("Detected SIGNTERM, stopping PlexNFSWatchdog...")
-            for observer in observers:
-                observer.unschedule_all()
-                observer.stop()
-                observer.join()
+            observer.stop()
+            observer.join()
             if stop_plex_watchdog_service is not None:
                 stop_plex_watchdog_service()
         except OSError as os_err:
