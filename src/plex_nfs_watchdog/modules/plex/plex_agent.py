@@ -232,9 +232,6 @@ class PlexAgent:
         plex_section = self._server.library.sectionByID(section_id)
         for location in self._internal_sections[section_id]["locations"]:
             scan_path: Path = Path(location / item).absolute()
-            if not self._server.isBrowsable(scan_path):
-                logging.info(f"Skipping Plex scan for {str(scan_path)} because it is not browsable")
-                continue
             logging.info(f"Requesting Plex to scan the remote path {str(scan_path)}")
             if shared.user_input.dry_run:
                 logging.info("Skipping Plex scan due to dry-run")
