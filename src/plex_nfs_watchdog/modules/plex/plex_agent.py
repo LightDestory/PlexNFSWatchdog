@@ -219,6 +219,8 @@ class PlexAgent:
                 return uuid, cursor.name
             else:
                 cursor = cursor.parent
+        if shared.user_input.verbose:
+            logging.info(f"Path {path.absolute()} is not a child of a Plex section")
         return None
 
     def _scan(self, section_uuid: str, item: str) -> None:
@@ -266,7 +268,6 @@ class PlexAgent:
                 return
         validation = self.validate_path(event_path)
         if validation is None:
-            logging.info(f"Path {event_path.absolute()} is not a valid path to scan")
             return
         if validation not in self._scan_queue:
             logging.info(
