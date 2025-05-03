@@ -1,10 +1,14 @@
 from watchdog.events import FileSystemEventHandler
 
-from ..plex.plex_agent import plex_agent_singleton
 from ..config import shared
+from ..plex.plex_agent import plex_agent_singleton
 
 
 class PlexWatchdog(FileSystemEventHandler):
+    """
+    PlexWatchdog is a class that handles file system events for Plex NFS Watchdog.
+    It inherits from FileSystemEventHandler and overrides methods to send events to the Plex agent.
+    """
 
     def on_moved(self, event):
         if "move" in shared.user_input.listeners:

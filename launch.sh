@@ -7,6 +7,8 @@ CMD="python src/plex_nfs_watchdog/plex_nfs_watchdog.py --daemon"
 [ -n "$PLEX_TOKEN" ] && CMD="$CMD --token $PLEX_TOKEN"
 [ -n "$SCAN_INTERVAL" ] && CMD="$CMD --interval $SCAN_INTERVAL"
 [ -n "$LISTENERS" ] && CMD="$CMD --listeners $LISTENERS"
+[ -n "$ALLOW_FOLDER" ] && CMD="$CMD --allow-folder"
+[ -n "$ALWAYS_OVERWRITE_CONFIG" ] && CMD="$CMD --always-overwrite-config"
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') [INFO] Starting up watchdog: $CMD"
 

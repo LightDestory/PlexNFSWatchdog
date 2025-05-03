@@ -1,15 +1,16 @@
 import logging
-import time
-import colorlog
-import sys
 import os
+import sys
+import time
+
+import colorlog
 from watchdog.observers import Observer
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "."))
-from modules.watchdog.plex_watchdog_event import PlexWatchdog
-from modules.config import shared
 from modules.cli.helper import get_args_from_cli
+from modules.config import shared
 from modules.plex.plex_agent import plex_agent_singleton
+from modules.watchdog.plex_watchdog_event import PlexWatchdog
 
 colorlog.basicConfig(
     format="{log_color}{levelname}:\t{message}",
@@ -23,6 +24,11 @@ logging.getLogger("watchdog").setLevel(logging.WARNING)
 
 
 def daemon_mode() -> None:
+    """
+    Daemon mode for Plex NFS Watchdog.
+    This function sets up the PlexWatchdog event handler and starts the observer to monitor file system events.
+    It checks the provided paths to ensure they are valid Plex sections and schedules them for monitoring.
+    """
     event_handler: PlexWatchdog = PlexWatchdog()
     observer: Observer = Observer()
     valid_paths: int = 0

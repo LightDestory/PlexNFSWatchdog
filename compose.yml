@@ -11,6 +11,8 @@ services:
       - WATCH_PATHS=${WATCH_PATHS}
       - SCAN_INTERVAL=${SCAN_INTERVAL}
       - LISTENERS=${LISTENERS}
+      - ALLOW_FOLDER=${ALLOW_FOLDER}
+      - ALWAYS_OVERWRITE_CONFIG=${ALWAYS_OVERWRITE_CONFIG}
     volumes:
       - /path/to/movies:/path/to/movies:ro
       - /path/to/series:/path/to/series:ro
