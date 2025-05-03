@@ -1,6 +1,7 @@
 import json
 import logging
 import pprint
+from typing import Optional
 
 from plexapi.server import PlexServer
 from pathlib import Path
@@ -10,12 +11,13 @@ from ..config import shared
 
 
 class PlexAgent:
-    __plex_config: dict[str, str] = {}
-    __server: PlexServer = None
-    __save_cache: bool = False
-    __internal_paths: dict[str, tuple[str, str]] = {}
-    __notify_queue: list[tuple[str, str]] = list()
-    __supported_ext: list[str] = [
+    _plex_config: dict[str, str] = {}
+    _server: PlexServer = None
+    _save_cache: bool = False
+    _internal_sections: dict = {}
+    _fast_section_lookup: set[str] = set()
+    _scan_queue: list[tuple[str, str]] = list()
+    _supported_ext: list[str] = [
         "3g2",
         "3gp",
         "amv",
@@ -65,65 +67,87 @@ class PlexAgent:
         "vtt",
         "wmv",
         "yuv",
-        "webm"
+        "webm",
     ]
 
-    def is_cache_loaded(self) -> bool:
+    def _is_refreshing(self) -> bool:
         """
-        Checks if the Plex configuration is set
-        :return bool: True if the Plex configuration is set, False otherwise
+        Returns True if the Plex server is refreshing, False otherwise
+        :return bool: True if the Plex server is refreshing, False otherwise
         """
-        return self.__plex_config != {}
+        for section in self._server.library.sections():
+            if section.refreshing:
+                return True
+        return False
+
+    def _get_uuid_from_root_folder(self, root_folder: str) -> str:
+        for uuid, section_data in self._internal_sections.items():
+            if root_folder in section_data["root_folders"]:
+                return uuid
+        raise ValueError(f"Root folder {root_folder} not found in Plex sections")
+
+    def tokenized(self) -> bool:
+        """
+        Returns True if the Plex server is tokenized, False otherwise
+        :return bool: True if the Plex server is tokenized, False otherwise
+        """
+        return self._plex_config["token"] is not None
 
     def load_config_cache(self) -> None:
         """
-        Loads the Plex configuration from the cache
-        :return:
+        If the cache file exists, it loads the Plex configuration from the cache
         """
         try:
-            logging.info(f"Found Plex configuration from cache: {shared.cache_path}")
-            with open(shared.cache_path, "r") as cache_file:
-                self.__plex_config = json.load(cache_file)
+            if shared.cache_path.exists():
+                logging.info(f"Found Plex configuration from cache: {shared.cache_path}")
+                with open(shared.cache_path, "r") as cache_file:
+                    self._plex_config = json.load(cache_file)
         except OSError as e:
             logging.error(f"Could not load Plex configuration from cache: {e}")
             exit(-1)
 
-    def __save_config_cache(self) -> None:
+    def _save_config_cache(self) -> None:
         """
         Saves the Plex configuration to the cache
-        :return:
         """
         try:
             logging.info(f"Saving Plex configuration to cache: {shared.cache_path}")
             if not shared.cache_path.parent.exists():
                 shared.cache_path.parent.mkdir(parents=True)
             with open(shared.cache_path, "w") as cache_file:
-                json.dump(self.__plex_config, cache_file)
+                json.dump(self._plex_config, cache_file)
         except OSError as e:
             logging.error(f"Could not save Plex configuration to cache: {e}")
             exit(-1)
 
-    def __eval_config(self) -> None:
+    def _eval_config(self) -> None:
         """
         Returns the Plex configuration, it is ensured that host and token are available from cli or cache
         :return:
         """
-        if shared.user_input.token and not self.__plex_config:
-            self.__plex_config['host'] = shared.user_input.host
-            self.__plex_config['token'] = shared.user_input.token
-            self.__save_cache = True
-        elif shared.user_input.token and self.__plex_config:
-            if self.__plex_config['host'] != shared.user_input.host \
-                    or self.__plex_config['token'] != shared.user_input.token:
-                logging.warning("Plex host and/or token are different from the cached ones!")
+        if not self._plex_config:
+            self._plex_config["host"] = shared.user_input.host
+            self._plex_config["token"] = shared.user_input.token
+            self._save_cache = True
+        else:
+            if (
+                shared.user_input.token is not None and shared.user_input.token != self._plex_config["token"]
+            ) or self._plex_config["host"] != shared.user_input.host:
+                logging.warning("Plex credentials are different from the cached one!")
                 while True:
-                    answer: str = input("Do you want to overwrite the cached configuration? [y/N]: ").lower()
-                    if answer == 'y':
-                        self.__plex_config['host'] = shared.user_input.host
-                        self.__plex_config['token'] = shared.user_input.token
-                        self.__save_cache = True
+                    answer: str = (
+                        "y"
+                        if shared.user_input.always_overwrite_config
+                        else input("Do you want to overwrite the cached configuration? [y/N]: ").lower()
+                    )
+                    if answer == "y":
+                        logging.info("Overwriting cached configuration...")
+                        self._plex_config["host"] = shared.user_input.host
+                        if shared.user_input.token is not None:
+                            self._plex_config["token"] = shared.user_input.token
+                        self._save_cache = True
                         break
-                    elif answer == 'n':
+                    elif answer == "n":
                         break
 
     def connect(self) -> None:
@@ -131,32 +155,35 @@ class PlexAgent:
         Connects to the Plex server
         :return:
         """
-        self.__eval_config()
+        self._eval_config()
         try:
-            self.__server = PlexServer(self.__plex_config["host"], self.__plex_config["token"])
-            logging.info("Connected to Plex server")
-            logging.info(f"Plex version: {self.__server.version}")
-            self.__inspect_library()
-            num_detected_sections: int = len(self.__internal_paths)
+            self._server = PlexServer(baseurl=self._plex_config["host"], token=self._plex_config["token"], timeout=60)
+            logging.info(f"Connected to Plex server ({self._server.version})")
+            self._inspect_library()
+            num_detected_sections: int = len(self._internal_sections)
             if num_detected_sections == 0:
                 logging.error("No Plex sections detected, please check your configuration")
                 exit(-1)
-            logging.info(f"Found {num_detected_sections} Plex sections:\n{pprint.pformat(self.__internal_paths)}")
-            if self.__save_cache:
-                self.__save_config_cache()
+            logging.info(f"Found {num_detected_sections} Plex sections:\n{pprint.pformat(self._internal_sections)}")
+            if self._save_cache:
+                self._save_config_cache()
         except Exception as e:
             logging.error(f"Unable to connect to Plex server:\n{e}")
             exit(-1)
 
-    def __inspect_library(self) -> None:
+    def _inspect_library(self) -> None:
         """
         Loads the internal paths from the Plex server
         :return:
         """
-        for section in self.__server.library.sections():
+        for section in self._server.library.sections():
+            self._internal_sections[section.uuid] = {"title": section.title, "locations": [], "root_folders": set()}
             for location in section.locations:
-                remote_path: str = location
-                self.__internal_paths[Path(remote_path).name] = (section.title, remote_path)
+                tmp = Path(location)
+                if tmp not in self._internal_sections[section.uuid]["locations"]:
+                    self._internal_sections[section.uuid]["locations"].append(tmp)
+                self._internal_sections[section.uuid]["root_folders"].add(tmp.name)
+                self._fast_section_lookup.add(tmp.name)
 
     def is_plex_section(self, folder_name: str) -> bool:
         """
@@ -164,42 +191,44 @@ class PlexAgent:
         :param folder_name: The folder name to check
         :return bool: True if the given folder_name is a Plex section, False otherwise
         """
-        return folder_name in self.__internal_paths.keys()
+        return folder_name in self._fast_section_lookup
 
-    def __find_section_child_of(self, item: Path) -> Path | None:
+    def validate_path(self, path: Path) -> Optional[tuple[str, str]]:
         """
-        Finds the direct child of the Plex section of the given item
-        :param item: The item to find the section of
-        :return: The direct child of the Plex section of the given item
+        Validates the given path and returns the section UUID if it is a valid Plex section
+        :param path: The path to validate
+        :return: The section UUID if it is a valid Plex section, None otherwise
         """
-        while item.parent.name not in self.__internal_paths.keys():
-            if len(item.parents) == 0:
-                return None
-            item = item.parent
-        return item
+        if path.is_file() and path.suffix[1:] not in self._supported_ext:
+            return None
+        cursor = path
+        while len(cursor.parents) != 0:
+            if cursor.parent.name in self._fast_section_lookup:
+                uuid = self._get_uuid_from_root_folder(cursor.parent.name)
+                return uuid, cursor.name
+            else:
+                cursor = cursor.parent
+        return None
 
-    def _scan(self, section: str, item: str) -> None:
+    def _scan(self, section_uuid: str, item: str) -> None:
         """
         Scans the given item in the given section
-        :param section: The section to scan
+        :param section_uuid: The section to scan
         :param item: The item to scan
         :return:
         """
-        section_title, section_path = self.__internal_paths[section]
-        plex_section = self.__server.library.section(section_title)
-        if plex_section.refreshing:
-            if shared.user_input.daemon:
-                logging.warning(f"Plex section {section_title} is already refreshing, re-scheduling...")
-                self.__notify_queue.append((section, item))
+        plex_section = self._server.library.sectionByUUID(section_uuid)
+        for location in self._internal_sections[section_uuid]["locations"]:
+            scan_path: Path = Path(location / item).absolute()
+            if self._server.isBrowsable(scan_path):
+                logging.info(f"Requesting Plex to scan the remote path {str(scan_path)}")
+                if shared.user_input.dry_run:
+                    logging.info("Skipping Plex scan due to dry-run")
+                else:
+                    plex_section.update(str(scan_path))
             else:
-                logging.warning(f"Plex section {section_title} is already refreshing, skipping...")
-            return
-        scan_path: Path = Path(f"{section_path}/{item}")
-        logging.info(f"Requesting Plex to scan remote path {str(item)}")
-        if shared.user_input.dry_run:
-            logging.info(f"Skipping Plex scan due to dry-run")
-        else:
-            plex_section.update(str(scan_path))
+                logging.warning(f"Path {str(scan_path)} is not a valid Plex path, skipping scan")
+                continue
 
     def manual_scan(self, paths: set[Path]) -> None:
         """
@@ -207,20 +236,13 @@ class PlexAgent:
         :param paths: A list of paths to scan
         :return:
         """
-        scan_sections: set[tuple[str, str]] = set()
-        for given_path in paths:
-            logging.info(f"Analyzing {given_path}")
-            if given_path.name in self.__internal_paths.keys():
-                scan_sections.add((given_path.name, given_path))
-            else:
-                section_child: Path | None = self.__find_section_child_of(given_path)
-                if section_child is None:
-                    logging.error(f"Could not find Plex section for {given_path}")
-                    continue
-                else:
-                    scan_sections.add((section_child.parent.name, section_child.name))
-        for (section, item) in scan_sections:
-            self._scan(section, item)
+        for user_paths in paths:
+            logging.info(f"Analyzing {user_paths.absolute()}")
+            validation = self.validate_path(user_paths)
+            if validation is None:
+                logging.warning(f"Path {user_paths.absolute()} is not a valid path to scan")
+                continue
+            self._scan(validation[0], validation[1])
 
     def parse_event(self, event) -> None:
         """
@@ -229,17 +251,20 @@ class PlexAgent:
         :return:
         """
         event_type: str = event.event_type
-        event_path: Path = Path(event.src_path) if event_type != 'moved' else Path(event.dest_path)
-        if event_path.name in self.__internal_paths.keys():
+        event_path: Path = Path(event.src_path) if event_type != "moved" else Path(event.dest_path)
+        if event.is_directory:
+            if not shared.user_input.allow_folder:
+                logging.info(f"Skipping directory event: {event_path}")
+                return
+        validation = self.validate_path(event_path)
+        if validation is None:
+            logging.info(f"Path {event_path.absolute()} is not a valid path to scan")
             return
-        section_child: Path | None = self.__find_section_child_of(event_path)
-        if section_child is None:
-            logging.error(f"Could not find Plex section for {event_path}")
-            return
-        section_scan = (section_child.parent.name, section_child.name)
-        if section_scan not in self.__notify_queue:
-            logging.info(f"Adding to queue ({event_type}): {section_child.name}")
-            self.__notify_queue.append(section_scan)
+        if validation not in self._scan_queue:
+            logging.info(
+                f"Adding to queue for section {self._internal_sections[validation[0]]['title']} ({event_type}): {validation[1]}"
+            )
+            self._scan_queue.append(validation)
 
     def start_service(self) -> ():
         """
@@ -250,8 +275,11 @@ class PlexAgent:
 
         def loop():
             while not stopped.wait(shared.user_input.interval):
-                if self.__notify_queue:
-                    section, item = self.__notify_queue.pop(0)
+                if self._scan_queue:
+                    if self._is_refreshing():
+                        logging.info("Plex server is refreshing, skipping scan")
+                        continue
+                    section, item = self._scan_queue.pop(0)
                     self._scan(section, item)
 
         Thread(target=loop).start()
