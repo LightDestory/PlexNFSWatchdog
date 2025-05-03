@@ -65,6 +65,7 @@ def main() -> None:
     """
     Main function to start the Plex NFS Watchdog.
     """
+    logging.info(f"Starting Plex NFS Watchdog v{shared.VERSION}...")
     plex_agent_singleton.load_config_cache()
     get_args_from_cli()
     plex_agent_singleton.connect()

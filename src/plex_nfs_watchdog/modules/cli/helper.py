@@ -70,6 +70,11 @@ def get_args_from_cli() -> None:
         action="store_true",
         help="Set this to always overwrite the config file when the credentials do not match with cache.",
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Prints verbose output. This will print all the requests and responses to the console.",
+    )
     shared.user_input = parser.parse_args()
     shared.user_input.paths = set(shared.user_input.paths)
     if shared.user_input.daemon:

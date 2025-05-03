@@ -75,6 +75,8 @@ class PlexAgent:
         :return: True if any section is refreshing, False otherwise
         """
         for section in self._server.library.sections():
+            if shared.user_input.verbose:
+                logging.info(f"Checking refreshing status for section {section.title}")
             if section.refreshing:
                 return True
         return False
@@ -204,7 +206,11 @@ class PlexAgent:
         :param path: The path to validate
         :return: A tuple containing the section UUID and the item name if valid, None otherwise
         """
+        if shared.user_input.verbose:
+            logging.info(f"Analyzing {path.absolute()}")
         if path.is_file() and path.suffix[1:] not in self._supported_ext:
+            if shared.user_input.verbose:
+                logging.info(f"File {path.name} is not a supported file type")
             return None
         cursor = path
         while len(cursor.parents) != 0:
@@ -221,11 +227,11 @@ class PlexAgent:
         :param section_uuid: The UUID of the section to scan
         :param item: The folder name to scan
         """
-        plex_section = self._server.library.sectionByUUID(section_uuid)
+        plex_section = self._server.library.sectionByID(section_uuid)
         for location in self._internal_sections[section_uuid]["locations"]:
             scan_path: Path = Path(location / item).absolute()
             if not self._server.isBrowsable(scan_path):
-                logging.info(f"Skipping Plex scan for {str(scan_path)}")
+                logging.info(f"Skipping Plex scan for {str(scan_path)} because it is not browsable")
                 continue
             logging.info(f"Requesting Plex to scan the remote path {str(scan_path)}")
             if shared.user_input.dry_run:
@@ -239,7 +245,6 @@ class PlexAgent:
         :param paths: A list of paths to scan
         """
         for user_paths in paths:
-            logging.info(f"Analyzing {user_paths.absolute()}")
             validation = self.validate_path(user_paths)
             if validation is None:
                 logging.warning(f"Path {user_paths.absolute()} is not a valid path to scan")
@@ -256,7 +261,8 @@ class PlexAgent:
         event_path: Path = Path(event.src_path) if event_type != "moved" else Path(event.dest_path)
         if event.is_directory:
             if not shared.user_input.allow_folder:
-                logging.info(f"Skipping directory event: {event_path}")
+                if shared.user_input.verbose:
+                    logging.info(f"Skipping directory event: {event_path}")
                 return
         validation = self.validate_path(event_path)
         if validation is None:
